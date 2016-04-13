@@ -157,7 +157,79 @@ def s3_create_client_class_register_new_class():
 
 def s3_invoke_custom_class():
     session = s3_create_client_class_register_new_class()
-    s3 = session.client('s3')
+    session.client('s3')
+
+
+# creating-resource-class
+"""
+格式:
+    creating-resource-class.service-name.resource-name
+"""
+
+
+# 添加新的方法
+def s3_creating_resource_register_new_method():
+    def custom_method(self):
+        print('This is my custom method')
+
+    def add_custom_method(class_attributes, **kwargs):
+        class_attributes['my_method'] = custom_method
+
+    session = Session()
+    session.events.register('creating-resource-class.s3.ServiceResource',
+                            add_custom_method)
+
+    return session
+
+
+def s3_invoke_creating_resource_register_new_method():
+    session = s3_creating_resource_register_new_method()
+    s3 = session.resource('s3')
+    s3.my_method()
+
+
+# 添加新的类
+def s3_creating_resource_register_new_class():
+    class MyClass(object):
+        def __init__(self, *args, **kwargs):
+            super(MyClass, self).__init__(*args, **kwargs)
+            print('Resource instantiated!')
+
+    def add_custom_class(base_classes, **kwargs):
+        base_classes.insert(0, MyClass)
+
+    session = Session()
+    session.events.register('creating-resource-class.s3.ServiceResource',
+                            add_custom_class)
+
+    return session
+
+
+def s3_invoke_creating_resource_register_new_class():
+    session = s3_creating_resource_register_new_class()
+    session.resource('s3')
+
+
+"""
+格式: provide-client-params.service_name.operation-name
+"""
+
+
+def s3_provide_client_params_register(s3_client):
+    event_system = s3_client.meta.events
+
+    def add_my_bucket(params, **kwargs):
+        if 'Bucket' not in params:
+            params['Bucket'] = 'skyfree-test'
+
+    event_system.register('provide-client-params.s3.ListObjects', add_my_bucket)
+    return s3_client
+
+
+def s3_invoke_provide_client_params_register():
+    s3 = s3_provide_client_params_register(boto3.client('s3'))
+    print s3.list_objects()['Name']
+
 
 if __name__ == '__main__':
-    s3_invoke_custom_class()
+    s3_invoke_provide_client_params_register()
